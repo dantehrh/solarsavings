@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SolarShift Nigeria — Solar vs Generator Calculator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --amber: #F5A623;
+    --amber-glow: #FF8C00;
+    --green: #00E5A0;
+    --green-dark: #00B87A;
+    --surface: #0F1117;
+    --card: #171B26;
+    --card2: #1E2333;
+    --border: #2A3045;
+    --text: #E8EBF4;
+    --muted: #7A84A0;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+  h1, h2, h3, .font-display { font-family: 'Syne', sans-serif; }
+
+  /* Background grid */
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(245,166,35,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,166,35,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Glow orbs */
+  .orb-amber {
+    position: fixed; top: -120px; right: -100px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(245,166,35,0.12) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .orb-green {
+    position: fixed; bottom: -150px; left: -100px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,229,160,0.08) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .container { position: relative; z-index: 1; }
+
+  /* Cards */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; }
+  .card-inner { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; }
+
+  /* Badge */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(245,166,35,0.12); border: 1px solid rgba(245,166,35,0.3);
+    color: var(--amber); font-family: 'Syne', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    padding: 5px 12px; border-radius: 100px; text-transform: uppercase;
+  }
+
+  /* Inputs */
+  .inp {
+    width: 100%; background: #0F1117; border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+    -webkit-appearance: none;
+  }
+  .inp:focus { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245,166,35,0.12); }
+  .inp::placeholder { color: var(--muted); }
+  select.inp { cursor: pointer; }
+  option { background: #1E2333; }
+
+  /* Range */
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 6px;
+    background: var(--border); border-radius: 3px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--amber); box-shadow: 0 0 12px rgba(245,166,35,0.5);
+    cursor: pointer; transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+  /* Buttons */
+  .btn-primary {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; background: linear-gradient(135deg, var(--amber-glow), var(--amber));
+    color: #0F1117; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px;
+    padding: 16px 24px; border-radius: 12px; border: none; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(245,166,35,0.3); letter-spacing: 0.02em;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(245,166,35,0.45); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-green {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; background: linear-gradient(135deg, var(--green-dark), var(--green));
+    color: #0a1a14; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px;
+    padding: 16px 24px; border-radius: 12px; border: none; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s; box-shadow: 0 4px 24px rgba(0,229,160,0.25);
+  }
+  .btn-green:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,229,160,0.4); }
+
+  /* Metric cards */
+  .metric-card {
+    background: var(--card2); border-radius: 14px; padding: 18px;
+    border: 1px solid var(--border); position: relative; overflow: hidden;
+  }
+  .metric-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .metric-card.amber::before  { background: linear-gradient(90deg, var(--amber-glow), var(--amber)); }
+  .metric-card.green::before  { background: linear-gradient(90deg, var(--green-dark), var(--green)); }
+  .metric-card.red::before    { background: linear-gradient(90deg, #FF4B6E, #FF7A8A); }
+  .metric-card.blue::before   { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+  .metric-card.orange::before { background: linear-gradient(90deg, #FF6B35, #FF9F1C); }
+
+  .metric-label { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .metric-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; line-height: 1; }
+  .metric-sub   { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* ── Break-Even Hero (Zero-Cost Month) ── */
+  .breakeven-hero {
+    background: linear-gradient(135deg, rgba(0,229,160,0.08) 0%, rgba(0,184,122,0.04) 100%);
+    border: 1px solid rgba(0,229,160,0.22);
+    border-radius: 16px; padding: 28px 22px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .breakeven-hero::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    border-radius: 16px 16px 0 0;
+    background: linear-gradient(90deg, var(--green-dark), var(--green));
+  }
+  .be-number {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(56px, 16vw, 88px);
+    font-weight: 800; color: var(--green);
+    line-height: 1; letter-spacing: -3px;
+    display: block;
+  }
+  .be-sublabel {
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0,229,160,0.65);
+    margin-top: 4px; display: block;
+  }
+  .be-desc { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+  @keyframes greenPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,229,160,0.18); }
+    50%      { box-shadow: 0 0 0 14px rgba(0,229,160,0); }
+  }
+  .breakeven-hero { animation: greenPulse 3.5s ease-in-out infinite; }
+
+  /* Progress bars */
+  .timeline-bar {
+    height: 10px; border-radius: 5px; background: var(--border); overflow: hidden;
+  }
+  .timeline-fill {
+    height: 100%; border-radius: 5px;
+    background: linear-gradient(90deg, var(--green-dark), var(--green));
+    transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  /* Toggles */
+  .fuel-toggle { display: flex; gap: 8px; }
+  .fuel-btn {
+    flex: 1; padding: 11px 6px; border-radius: 10px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    text-align: center; white-space: nowrap;
+  }
+  .fuel-btn.active { background: rgba(245,166,35,0.12); border-color: var(--amber); color: var(--amber); }
+
+  .band-toggle { display: flex; gap: 8px; }
+  .band-btn {
+    flex: 1; padding: 10px 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; line-height: 1.3;
+  }
+  .band-btn.active-a { background: rgba(245,166,35,0.12); border-color: var(--amber); color: var(--amber); }
+  .band-btn.active-b { background: rgba(255,107,53,0.12); border-color: #FF9F1C; color: #FF9F1C; }
+
+  /* Results panel */
+  #results-panel {
+    opacity: 0; transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease; pointer-events: none;
+  }
+  #results-panel.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+  /* Comparison table */
+  .compare-row { display: flex; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .compare-row:last-child { border-bottom: none; }
+
+  /* Migration risk */
+  .risk-panel { opacity: 0; max-height: 0; overflow: hidden; transition: opacity 0.5s ease, max-height 0.6s cubic-bezier(0.22,1,0.36,1); }
+  .risk-panel.visible { opacity: 1; max-height: 1400px; }
+  .risk-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255,107,53,0.12); border: 1px solid rgba(255,107,53,0.35);
+    color: #FF9F1C; font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.08em; padding: 4px 10px; border-radius: 100px; text-transform: uppercase;
+  }
+  @keyframes pulse-risk {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,107,53,0.4); }
+    50%      { box-shadow: 0 0 0 8px rgba(255,107,53,0); }
+  }
+  .risk-pulse { animation: pulse-risk 2s ease-in-out infinite; }
+
+  /* ── Detail Toggle — Amber Primary Pill ── */
+  .detail-toggle-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    background: linear-gradient(135deg, var(--amber-glow), var(--amber));
+    color: #0a0800;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px;
+    padding: 14px 30px; border-radius: 100px; border: none; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.25s;
+    box-shadow: 0 4px 22px rgba(245,166,35,0.4), 0 1px 4px rgba(0,0,0,0.25);
+    letter-spacing: 0.02em;
+  }
+  .detail-toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 36px rgba(245,166,35,0.58), 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .detail-toggle-btn:active { transform: translateY(0); }
+  .detail-toggle-btn.open {
+    background: var(--card2); color: var(--amber);
+    border: 1px solid rgba(245,166,35,0.38);
+    box-shadow: 0 2px 14px rgba(245,166,35,0.12);
+  }
+  #detail-chevron { transition: transform 0.38s cubic-bezier(0.34,1.56,0.64,1); flex-shrink: 0; }
+
+  /* Collapsible */
+  .detail-collapse {
+    overflow: hidden; max-height: 0; opacity: 0;
+    transition: max-height 0.7s cubic-bezier(0.22,1,0.36,1), opacity 0.45s ease 0.05s;
+  }
+  .detail-collapse.open { max-height: 3200px; opacity: 1; }
+
+  /* ── Premium Lead Card ── */
+  .lead-card {
+    background: linear-gradient(145deg, #10151f 0%, #18223a 100%);
+    border: 1px solid rgba(0,229,160,0.22);
+    border-radius: 20px; padding: 30px 24px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0,229,160,0.04), 0 24px 64px rgba(0,0,0,0.45);
+  }
+  .lead-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(90deg, var(--green-dark), var(--green), #60A5FA);
+  }
+  .lead-form input, .lead-form select {
+    width: 100%; background: rgba(10,12,20,0.85);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 13px 16px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  .lead-form input:focus, .lead-form select:focus {
+    border-color: var(--green); box-shadow: 0 0 0 3px rgba(0,229,160,0.1);
+  }
+  .lead-form input::placeholder { color: var(--muted); }
+  .field-label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+  }
+  .req-star { color: #FF7A8A; font-size: 9px; }
+
+  /* Security note */
+  .security-note {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(0,229,160,0.04); border: 1px solid rgba(0,229,160,0.12);
+    border-radius: 10px; padding: 12px 14px; margin-top: 14px;
+  }
+  .security-note p { font-size: 11px; color: var(--muted); line-height: 1.65; margin: 0; }
+  .security-note strong { color: rgba(255,255,255,0.75); }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 20px; right: 16px;
+    background: linear-gradient(135deg, #00B87A, #00E5A0);
+    color: #062014; padding: 13px 20px; border-radius: 12px;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
+    z-index: 1000; max-width: calc(100vw - 32px);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 8px 32px rgba(0,229,160,0.35);
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* Animations */
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
+  .bounce { animation: bounce 1.8s ease-in-out infinite; }
+  @keyframes pulse-amber {
+    0%,100% { box-shadow: 0 4px 24px rgba(245,166,35,0.3); }
+    50%      { box-shadow: 0 4px 40px rgba(245,166,35,0.7); }
+  }
+  .computing { animation: pulse-amber 0.8s ease-in-out 2; }
+
+  /* Tooltip */
+  .tooltip-wrap { position: relative; display: inline-block; vertical-align: middle; }
+  .tooltip-wrap .tt {
+    visibility: hidden; opacity: 0;
+    position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%);
+    background: #2A3045; color: var(--text); font-size: 11px;
+    padding: 6px 10px; border-radius: 7px; white-space: nowrap;
+    transition: opacity 0.2s; z-index: 10; pointer-events: none;
+    border: 1px solid var(--border);
+  }
+  .tooltip-wrap:hover .tt { visibility: visible; opacity: 1; }
+
+  /* Mobile ≤ 420px */
+  @media (max-width: 420px) {
+    .be-number { font-size: 64px !important; letter-spacing: -2px; }
+    .metric-value { font-size: 17px !important; }
+    .metric-card { padding: 13px 11px !important; }
+    .breakeven-hero { padding: 22px 14px; }
+    .lead-card { padding: 22px 14px; }
+    .detail-toggle-btn { font-size: 12px; padding: 12px 18px; gap: 7px; }
+    .fuel-btn { font-size: 11px; padding: 10px 4px; gap: 3px; }
+    .band-btn { font-size: 11px; padding: 9px 6px; }
+    .compare-row { flex-wrap: wrap; gap: 3px; }
+    .compare-row > div:first-child { flex: 100% !important; font-size: 11px !important; margin-bottom: 2px; }
+    .compare-row > div:not(:first-child) { flex: 1 !important; }
+  }
+  @media (max-width: 640px) {
+    h1 { font-size: 2rem !important; line-height: 1.2 !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="orb-amber"></div>
+<div class="orb-green"></div>
+
+<!-- HEADER -->
+<header class="container max-w-3xl mx-auto px-4 pt-10 pb-8 text-center">
+  <div class="flex justify-center mb-5">
+    <div class="badge">
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+      2026 Nigeria Market Data
+    </div>
+  </div>
+  <h1 class="font-display font-extrabold leading-tight mb-4" style="font-size:clamp(28px,8vw,48px)">
+    Stop Wasting <span style="color:var(--amber)">Money.</span><br>Own Your Power.
+  </h1>
+  <p class="text-base" style="color:var(--muted);max-width:520px;margin:0 auto;line-height:1.75">
+    Enter your current spending below. We'll calculate exactly how many months it takes for solar to pay for itself — and how much you keep over 10 years.
+  </p>
+  <div class="flex justify-center mt-6 bounce">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+  </div>
+</header>
+
+<main class="container max-w-3xl mx-auto px-4 pb-20">
+
+  <!-- ═══ INPUT CARD ═══ -->
+  <div class="card p-5 sm:p-8 mb-6">
+    <div class="flex items-center gap-3 mb-6">
+      <div style="width:36px;height:36px;background:rgba(245,166,35,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </div>
+      <div>
+        <h2 class="font-display font-bold text-lg">Your Current Energy Costs</h2>
+        <p class="text-xs" style="color:var(--muted)">Enter your actual usage — no guessing needed</p>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+
+      <!-- Generator Hours -->
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <label class="text-sm font-medium" style="display:flex;align-items:center;gap:6px">
+            Generator Run Time
+            <span class="tooltip-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span class="tt">Daily hours your generator runs</span></span>
+          </label>
+          <span class="font-display font-bold" style="color:var(--amber);font-size:15px" id="hours-display">6 hrs/day</span>
+        </div>
+        <input type="range" id="gen-hours" min="1" max="24" value="6" step="0.5" oninput="updateHours(this.value)">
+        <div class="flex justify-between text-xs mt-1" style="color:var(--muted)"><span>1 hr</span><span>8 hrs</span><span>16 hrs</span><span>24 hrs</span></div>
+      </div>
+
+      <!-- Fuel Type -->
+      <div>
+        <label class="text-sm font-medium block mb-2">Fuel Type</label>
+        <div class="fuel-toggle">
+          <button class="fuel-btn active" id="btn-petrol" onclick="setFuel('petrol')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22h12M4 9h10l1 13H3L4 9zM8 9V5a2 2 0 014 0v4M19 2l2 4-2 4"/></svg>Petrol — ₦1,250/L
+          </button>
+          <button class="fuel-btn" id="btn-diesel" onclick="setFuel('diesel')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22h12M4 9h10l1 13H3L4 9zM8 9V5a2 2 0 014 0v4M14 5h4l2 4-2 4h-4"/></svg>Diesel — ₦2,000/L
+          </button>
+        </div>
+      </div>
+
+      <!-- Generator Size -->
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <label class="text-sm font-medium" style="display:flex;align-items:center;gap:6px">
+            Generator Size (kVA)
+            <span class="tooltip-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span class="tt">Check your generator nameplate</span></span>
+          </label>
+          <span class="font-display font-bold" style="color:var(--amber);font-size:15px" id="kva-display">3.5 kVA</span>
+        </div>
+        <input type="range" id="gen-kva" min="1" max="10" value="3.5" step="0.5" oninput="updateKva(this.value)">
+        <div class="flex justify-between text-xs mt-1" style="color:var(--muted)"><span>1 kVA</span><span>3.5 kVA</span><span>7 kVA</span><span>10 kVA</span></div>
+      </div>
+
+      <!-- Grid Tariff Band -->
+      <div>
+        <label class="text-sm font-medium block mb-2" style="display:flex;align-items:center;gap:6px">
+          Grid Tariff Band
+          <span class="tooltip-wrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span class="tt">Check your electricity bill for your band</span></span>
+        </label>
+        <div class="band-toggle">
+          <button class="band-btn active-a" id="btn-banda" onclick="setBand('A')">
+            <div><div>Band A</div><div style="font-size:10px;opacity:0.8">₦209.5/kWh</div></div>
+          </button>
+          <button class="band-btn" id="btn-bandb" onclick="setBand('B')">
+            <div><div>Band B ⚠️</div><div style="font-size:10px;opacity:0.8">₦63.5/kWh</div></div>
+          </button>
+        </div>
+        <p class="text-xs mt-2" id="band-hint" style="color:var(--muted)">Band A: Premium supply — 20+ hours/day. Higher tariff.</p>
+      </div>
+
+      <!-- NEPA Bill -->
+      <div>
+        <label class="text-sm font-medium block mb-2">
+          Monthly NEPA / DISCO Bill (₦)
+          <span class="text-xs ml-1" style="color:var(--muted)" id="bill-rate-hint">at ₦209.5/kWh</span>
+        </label>
+        <div style="position:relative">
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;font-size:15px">₦</span>
+          <input type="number" id="nepa-bill" class="inp" placeholder="e.g. 35000" style="padding-left:32px;" value="30000" min="0" oninput="handleInput()">
+        </div>
+      </div>
+
+      <!-- Solar Cost -->
+      <div class="card-inner p-4">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-medium" style="color:var(--muted)">Solar System Cost (5kVA, Lithium)</span>
+          <span class="badge" style="font-size:10px">Preset</span>
+        </div>
+        <div style="position:relative">
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;font-size:15px">₦</span>
+          <input type="number" id="solar-cost" class="inp" value="5500000" style="padding-left:32px;" oninput="handleInput()">
+        </div>
+        <p class="text-xs mt-2" style="color:var(--muted)">Adjust based on quotes you've received. Default: ₦5.5M (2026 market avg)</p>
+      </div>
+    </div>
+
+    <button class="btn-primary mt-8" id="calc-btn" onclick="calculate()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Calculate My Savings
+    </button>
+  </div>
+
+  <!-- ═══════════════════════ RESULTS PANEL ═══════════════════════ -->
+  <div id="results-panel">
+
+    <!-- Monthly Waste Hero -->
+    <div class="card mb-4 p-5 sm:p-8" style="background:linear-gradient(135deg,#0F1117 0%,#1a1f2e 100%)">
+      <div class="text-center mb-6">
+        <p class="font-display font-bold uppercase tracking-widest mb-2" style="font-size:10px;color:var(--muted)">You are currently burning</p>
+        <div class="font-display font-extrabold mb-1" style="font-size:clamp(30px,9vw,58px);color:var(--amber);line-height:1" id="monthly-waste">₦0</div>
+        <p class="text-sm" style="color:var(--muted)">every single month on fuel + grid electricity</p>
+      </div>
+
+      <div class="card-inner p-4 mb-4">
+        <div class="flex justify-between text-xs mb-2" style="color:var(--muted)"><span>Fuel Cost</span><span id="fuel-pct">0%</span></div>
+        <div class="timeline-bar mb-3"><div class="timeline-fill" id="fuel-bar" style="background:linear-gradient(90deg,#FF8C00,#F5A623);width:0%"></div></div>
+        <div class="flex justify-between text-xs mb-2" style="color:var(--muted)"><span>NEPA Bill</span><span id="nepa-pct">0%</span></div>
+        <div class="timeline-bar"><div class="timeline-fill" id="nepa-bar" style="width:0%"></div></div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 sm:gap-3">
+        <div class="metric-card amber text-center">
+          <div class="metric-label">Monthly Fuel</div>
+          <div class="metric-value" style="color:var(--amber);font-size:clamp(13px,4vw,17px)" id="r-fuel">₦0</div>
+          <div class="metric-sub" id="r-fuel-l">0 L/day</div>
+        </div>
+        <div class="metric-card red text-center">
+          <div class="metric-label">Monthly NEPA</div>
+          <div class="metric-value" style="color:#FF7A8A;font-size:clamp(13px,4vw,17px)" id="r-nepa">₦0</div>
+          <div class="metric-sub">Grid spend</div>
+        </div>
+        <div class="metric-card blue text-center">
+          <div class="metric-label">Yearly Total</div>
+          <div class="metric-value" style="color:#60A5FA;font-size:clamp(13px,4vw,17px)" id="r-yearly">₦0</div>
+          <div class="metric-sub">Current cost</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ZERO-COST MONTH + 10-YEAR GRID ══ -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+      <!-- Zero-Cost Month Hero -->
+      <div class="breakeven-hero">
+        <p class="metric-label" style="margin-bottom:4px;color:rgba(0,229,160,0.65)">☀️ Your Zero-Cost Month</p>
+        <span class="be-number" id="r-breakeven-num">—</span>
+        <span class="be-sublabel" id="r-be-sublabel">Calculating…</span>
+        <p class="be-desc" id="r-be-desc">From this month forward, solar generates pure profit for you.</p>
+        <div class="mt-4">
+          <div class="flex justify-between text-xs mb-1" style="color:rgba(0,229,160,0.5)">
+            <span>Payback progress (of 10 yrs)</span><span id="r-payback-pct">0%</span>
+          </div>
+          <div class="timeline-bar"><div id="r-payback-bar" class="timeline-fill" style="width:0%;transition-delay:0.3s"></div></div>
+        </div>
+      </div>
+
+      <!-- 10-Year Savings -->
+      <div class="metric-card green p-5 sm:p-6">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <div class="metric-label">💰 10-Year Net Savings</div>
+            <div class="metric-value" style="color:var(--green);font-size:clamp(17px,5vw,24px)" id="r-10yr">₦0</div>
+            <div class="metric-sub">After solar cost — benchmarked at Band A</div>
+          </div>
+          <div style="width:36px;height:36px;background:rgba(0,229,160,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+        </div>
+        <div class="text-xs" style="color:var(--muted)">Money that stays in <strong style="color:var(--green)">your pocket</strong>, not the petrol station</div>
+        <div class="mt-4 card-inner p-3 text-center">
+          <span class="text-xs" style="color:var(--muted)">10-Year ROI: </span>
+          <span class="font-display font-bold" style="color:var(--green);font-size:17px" id="r-roi">0%</span>
+        </div>
+        <div class="mt-2 card-inner p-2 text-center">
+          <span class="text-xs" style="color:var(--muted)">Monthly saving after break-even: </span>
+          <span class="font-display font-bold text-sm" style="color:var(--green)" id="r-monthly-saving">₦0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⚠️ Band B Migration Risk Panel -->
+    <div id="risk-panel" class="risk-panel mb-4">
+      <div class="card p-5 sm:p-6" style="border-color:rgba(255,107,53,0.3);background:linear-gradient(135deg,#1a1209 0%,#1E2333 100%)">
+        <div class="flex items-center gap-3 mb-4">
+          <div style="width:36px;height:36px;background:rgba(255,107,53,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0" class="risk-pulse">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF9F1C" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <div class="risk-tag mb-1">⚠️ Band Migration Risk</div>
+            <h3 class="font-display font-bold text-base">Your Band B Status Is Not Permanent</h3>
+          </div>
+        </div>
+
+        <p class="text-sm mb-5" style="color:var(--muted);line-height:1.7">
+          NEPA/DISCOs are actively upgrading infrastructure. If your area is reclassified to <strong style="color:#FF9F1C">Band A</strong>, your tariff jumps <strong style="color:#FF9F1C">230%</strong> — overnight, without warning.
+        </p>
+
+        <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
+          <div class="metric-card orange text-center">
+            <div class="metric-label">Your Current Bill</div>
+            <div class="metric-value" style="color:#FF9F1C;font-size:clamp(13px,4vw,17px)" id="r-band-b-bill">₦0</div>
+            <div class="metric-sub">Band B rate</div>
+          </div>
+          <div class="metric-card red text-center">
+            <div class="metric-label">After Migration</div>
+            <div class="metric-value" style="color:#FF7A8A;font-size:clamp(13px,4vw,17px)" id="r-band-a-equiv">₦0</div>
+            <div class="metric-sub">If upgraded to Band A</div>
+          </div>
+          <div class="metric-card red text-center">
+            <div class="metric-label">Extra Monthly</div>
+            <div class="metric-value" style="color:#FF7A8A;font-size:clamp(13px,4vw,17px)" id="r-migration-delta">₦0</div>
+            <div class="metric-sub">You'd owe more/month</div>
+          </div>
+        </div>
+
+        <!-- ★ Annual Financial Risk -->
+        <div class="card-inner p-4 mb-4" style="border-color:rgba(255,107,53,0.22);background:rgba(255,107,53,0.05)">
+          <div class="flex items-start gap-3">
+            <div style="width:28px;height:28px;background:rgba(255,107,53,0.18);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF9F1C" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            </div>
+            <div>
+              <div class="font-display font-bold text-xs mb-1" style="color:#FF9F1C;letter-spacing:0.06em;text-transform:uppercase">Annual Financial Risk</div>
+              <p class="text-sm" style="color:var(--text);line-height:1.65" id="r-annual-risk-text">
+                You are exposed to an extra <strong style="color:#FF7A8A" id="r-annual-risk-amount">₦0</strong> in annual costs if your area is upgraded to Band A.
+              </p>
+              <p class="text-xs mt-1" style="color:var(--muted)">Formula: (Band A Rate ₦209.5 − Band B Rate ₦63.5) × your monthly kWh × 12 months</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accelerated payback -->
+        <div class="card-inner p-4" style="border-color:rgba(0,229,160,0.18)">
+          <div class="flex items-start gap-3">
+            <div style="width:28px;height:28px;background:rgba(0,229,160,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div>
+              <div class="text-xs font-display font-bold mb-1" style="color:var(--green)">Solar Payback Accelerated</div>
+              <p class="text-xs" style="color:var(--muted);line-height:1.6">
+                After migration, your solar break-even drops to just <strong style="color:var(--green)" id="r-risk-breakeven">—</strong>. The risk makes solar <em style="color:var(--green)">even more urgent</em>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-xs mt-4" style="color:var(--muted);line-height:1.6">
+          💡 <strong style="color:var(--text)">10-Year Savings use the Band A rate (₦209.5/kWh)</strong> as benchmark — Band B pricing is unlikely to last a decade.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Detail Toggle (Amber Primary Pill) ── -->
+    <div class="text-center mb-6 px-2">
+      <button id="detail-toggle-btn" onclick="toggleDetailedAnalysis()" class="detail-toggle-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span id="detail-btn-label">📊 Show Detailed Financial Analysis</span>
+        <svg id="detail-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+    </div>
+
+    <!-- Collapsible sections -->
+    <div id="detailed-analysis" class="detail-collapse">
+
+      <!-- Comparison Table -->
+      <div class="card p-5 sm:p-6 mb-4">
+        <h3 class="font-display font-bold mb-4 flex items-center gap-2" style="font-size:14px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Generator vs. Solar — Side by Side
+        </h3>
+        <div id="comparison-table"></div>
+      </div>
+
+      <!-- Chart -->
+      <div class="card p-5 sm:p-6 mb-6">
+        <h3 class="font-display font-bold mb-4 flex items-center gap-2" style="font-size:14px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+          Cumulative Savings Timeline
+        </h3>
+        <div style="position:relative;height:200px;width:100%;overflow:hidden">
+          <canvas id="savings-chart" style="display:block;width:100%;height:100%"></canvas>
+        </div>
+        <div class="flex justify-center gap-4 mt-3 flex-wrap" id="chart-legend">
+          <div class="flex items-center gap-2 text-xs" style="color:var(--muted)">
+            <span style="width:12px;height:3px;background:#FF7A8A;display:inline-block;border-radius:2px"></span>Generator Cost
+          </div>
+          <div class="flex items-center gap-2 text-xs" style="color:var(--muted)">
+            <span style="width:12px;height:3px;background:var(--green);display:inline-block;border-radius:2px"></span>Solar Cost
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /detailed-analysis -->
+
+    <!-- ══ PREMIUM LEAD GEN FORM ══ -->
+    <div class="lead-card mb-6">
+      <div class="flex items-center gap-2 mb-2">
+        <div style="width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);flex-shrink:0"></div>
+        <span class="font-display font-bold uppercase tracking-widest" style="font-size:10px;color:var(--green)">Free Service</span>
+      </div>
+      <h2 class="font-display font-bold mb-2" style="font-size:clamp(17px,5vw,23px)">Get a Verified Solar Quote</h2>
+      <p class="text-sm mb-6" style="color:var(--muted);line-height:1.7">
+        We connect you with <strong style="color:var(--text)">vetted, licensed installers</strong> in your state — no pressure, no middlemen. Get 3 quotes and compare in under 24 hours.
+      </p>
+
+      <div class="lead-form space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <div class="field-label">Full Name <span class="req-star">★ Required</span></div>
+            <input type="text" id="lead-name" placeholder="e.g. Chidi Okonkwo" required>
+          </div>
+          <div>
+            <div class="field-label">WhatsApp / Phone <span class="req-star">★ Required</span></div>
+            <input type="tel" id="lead-phone" placeholder="e.g. 0801 234 5678" required>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <div class="field-label">State / Location <span class="req-star">★ Required</span></div>
+            <select id="lead-location" required>
+              <option value="">Select your state…</option>
+              <option>Lagos</option><option>Abuja (FCT)</option><option>Rivers</option>
+              <option>Kano</option><option>Oyo</option><option>Anambra</option>
+              <option>Delta</option><option>Enugu</option><option>Kaduna</option>
+              <option>Cross River</option><option>Ogun</option><option>Ondo</option>
+              <option>Edo</option><option>Imo</option><option>Abia</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <div class="field-label">Budget Range <span class="req-star">★ Required</span></div>
+            <select id="lead-budget" required>
+              <option value="">Select budget…</option>
+              <option>Under ₦3M</option><option>₦3M – ₦5M</option>
+              <option>₦5M – ₦8M</option><option>₦8M – ₦15M</option>
+              <option>Above ₦15M</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Additional Notes <span style="color:var(--muted);font-size:9px;text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></div>
+          <input type="text" id="lead-notes" placeholder="e.g. 4-bedroom house, 2 ACs, need battery backup">
+        </div>
+      </div>
+
+      <!-- Trust badges -->
+      <div class="grid grid-cols-3 gap-2 sm:gap-3 my-5">
+        <div class="card-inner p-2 sm:p-3 text-center">
+          <div class="font-display font-bold text-xs" style="color:var(--green)">100% Free</div>
+          <div class="text-xs mt-0.5" style="color:var(--muted)">No hidden fees</div>
+        </div>
+        <div class="card-inner p-2 sm:p-3 text-center">
+          <div class="font-display font-bold text-xs" style="color:var(--green)">Verified</div>
+          <div class="text-xs mt-0.5" style="color:var(--muted)">Licensed installers</div>
+        </div>
+        <div class="card-inner p-2 sm:p-3 text-center">
+          <div class="font-display font-bold text-xs" style="color:var(--green)">No Spam</div>
+          <div class="text-xs mt-0.5" style="color:var(--muted)">Ever. Promise.</div>
+        </div>
+      </div>
+
+      <button class="btn-green" onclick="submitLead()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+        Get My Free Quotes Now
+      </button>
+
+      <!-- Security & Trust note -->
+      <div class="security-note">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <p>Your data is secure. <strong>We only share this with top-tier, verified solar installers in your specific region.</strong> No cold calls from unverified vendors. No spam. Your privacy is guaranteed.</p>
+      </div>
+    </div>
+
+  </div><!-- /results-panel -->
+
+  <!-- Footer -->
+  <footer class="text-center py-6 px-3" style="color:var(--muted);font-size:11px;line-height:1.7">
+    <p>Tariffs: Band A ₦209.5/kWh · Band B ₦63.5/kWh · Petrol ₦1,250/L · Diesel ₦2,000/L (2026). 10-Year Savings benchmarked at Band A rate regardless of current band. Migration Gap = (₦209.5 − ₦63.5) × monthly kWh × 12.</p>
+    <p class="mt-1">SolarShift Nigeria © 2026 — <span style="color:var(--amber)">Empowering Nigerian homes</span></p>
+  </footer>
+
+</main>
+
+<div id="toast">✅ Quote submitted! We'll connect you within 2 hours.</div>
+
+<script>
+  // ── Constants ─────────────────────────────────────────────────────────────
+  const PETROL_PRICE       = 1250;
+  const DIESEL_PRICE       = 2000;
+  const RATE_BAND_A        = 209.5;
+  const RATE_BAND_B        = 63.5;
+  const SOLAR_COST_DEFAULT = 5500000;
+  const SOLAR_MAINTENANCE  = 50000; // ₦/year
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let fuelType   = 'petrol';
+  let gridBand   = 'A';
+  let detailOpen = false;
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const lph = t => t === 'petrol' ? 0.45 : 0.35; // litres/hr/kVA
+  function fmt(n) {
+    if (n >= 1_000_000) return '₦' + (n/1_000_000).toFixed(2) + 'M';
+    if (n >= 1_000)     return '₦' + Math.round(n).toLocaleString('en-NG');
+    return '₦' + Math.round(n);
+  }
+  const fmtFull  = n => '₦' + Math.round(n).toLocaleString('en-NG');
+  const toKwh    = (bill, band) => bill / (band === 'A' ? RATE_BAND_A : RATE_BAND_B);
+
+  // ── Input handlers ────────────────────────────────────────────────────────
+  function setBand(band) {
+    gridBand = band;
+    document.getElementById('btn-banda').className = 'band-btn' + (band === 'A' ? ' active-a' : '');
+    document.getElementById('btn-bandb').className = 'band-btn' + (band === 'B' ? ' active-b' : '');
+    const hint = document.getElementById('band-hint');
+    document.getElementById('bill-rate-hint').textContent =
+      band === 'A' ? 'at ₦209.5/kWh' : 'at ₦63.5/kWh (Band B)';
+    if (band === 'A') {
+      hint.textContent  = 'Band A: Premium supply — 20+ hours/day. Higher tariff.';
+      hint.style.color  = 'var(--muted)';
+    } else {
+      hint.innerHTML    = '⚠️ Band B: Intermittent supply — lower tariff. <strong style="color:#FF9F1C">Migration risk applies.</strong>';
+    }
+    handleInput();
+  }
+
+  function setFuel(t) {
+    fuelType = t;
+    document.getElementById('btn-petrol').classList.toggle('active', t === 'petrol');
+    document.getElementById('btn-diesel').classList.toggle('active', t === 'diesel');
+    handleInput();
+  }
+
+  function updateHours(v) { document.getElementById('hours-display').textContent = parseFloat(v) + ' hrs/day'; handleInput(); }
+  function updateKva(v)   { document.getElementById('kva-display').textContent   = parseFloat(v) + ' kVA';    handleInput(); }
+  function handleInput()  { if (document.getElementById('results-panel').classList.contains('visible')) calculate(true); }
+
+  // ── Core calculation ──────────────────────────────────────────────────────
+  function calculate(silent = false) {
+    const btn = document.getElementById('calc-btn');
+    if (!silent) {
+      btn.classList.add('computing');
+      btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 0.8s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg> Calculating…`;
+      setTimeout(() => {
+        btn.classList.remove('computing');
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Recalculate`;
+      }, 900);
+    }
+
+    const hours     = parseFloat(document.getElementById('gen-hours').value);
+    const kva       = parseFloat(document.getElementById('gen-kva').value);
+    const nepaBill  = parseFloat(document.getElementById('nepa-bill').value)  || 0;
+    const solarCost = parseFloat(document.getElementById('solar-cost').value) || SOLAR_COST_DEFAULT;
+
+    // Fuel
+    const fuelPrice      = fuelType === 'petrol' ? PETROL_PRICE : DIESEL_PRICE;
+    const litresPerDay   = lph(fuelType) * kva * hours;
+    const monthlyFuel    = litresPerDay * 30 * fuelPrice;
+
+    // Grid (current + 10-yr benchmark)
+    const monthlyNepa    = nepaBill;
+    const monthlyTotal   = monthlyFuel + monthlyNepa;
+    const yearlyTotal    = monthlyTotal * 12;
+    const monthlyKwh     = toKwh(nepaBill, gridBand);
+    const monthlyNepa10  = monthlyKwh * RATE_BAND_A;           // always Band A for 10-yr
+    const yearlyTotal10  = (monthlyFuel + monthlyNepa10) * 12;
+
+    // Solar
+    const solarMonthlyCost = SOLAR_MAINTENANCE / 12;
+    const monthlySaving    = monthlyTotal - solarMonthlyCost;
+    const breakEvenMonths  = monthlySaving > 0 ? Math.ceil(solarCost / monthlySaving) : 999;
+    const breakEvenYears   = (breakEvenMonths / 12).toFixed(1);
+
+    // 10-year (Band A benchmark — protects against tariff creep)
+    const tenYearSavings   = yearlyTotal10 * 10 - (solarCost + SOLAR_MAINTENANCE * 10);
+    const roi              = ((tenYearSavings / solarCost) * 100).toFixed(0);
+
+    // ── Update DOM ───────────────────────────────────────────────────────
+    document.getElementById('monthly-waste').textContent   = fmtFull(monthlyTotal);
+    document.getElementById('r-fuel').textContent          = fmt(monthlyFuel);
+    document.getElementById('r-fuel-l').textContent        = litresPerDay.toFixed(1) + ' L/day';
+    document.getElementById('r-nepa').textContent          = fmt(monthlyNepa);
+    document.getElementById('r-yearly').textContent        = fmt(yearlyTotal);
+
+    const fuelPct = monthlyTotal > 0 ? Math.round(monthlyFuel / monthlyTotal * 100) : 0;
+    document.getElementById('fuel-bar').style.width  = fuelPct + '%';
+    document.getElementById('nepa-bar').style.width  = (100 - fuelPct) + '%';
+    document.getElementById('fuel-pct').textContent  = fuelPct + '% — ' + fmt(monthlyFuel);
+    document.getElementById('nepa-pct').textContent  = (100-fuelPct) + '% — ' + fmt(monthlyNepa);
+
+    // Zero-Cost Month
+    if (breakEvenMonths >= 999) {
+      document.getElementById('r-breakeven-num').textContent = '—';
+      document.getElementById('r-be-sublabel').textContent   = 'Enter higher spending above';
+      document.getElementById('r-be-desc').textContent       = 'Add your generator + grid costs to see your break-even month.';
+      document.getElementById('r-payback-pct').textContent   = '0%';
+      document.getElementById('r-payback-bar').style.width   = '0%';
+    } else {
+      document.getElementById('r-breakeven-num').textContent = breakEvenMonths;
+      document.getElementById('r-be-sublabel').textContent   = `Month ${breakEvenMonths}  ·  Year ${breakEvenYears}`;
+      document.getElementById('r-be-desc').textContent       = `From Month ${breakEvenMonths} onwards, your solar system generates pure profit — every single month, for 25+ years.`;
+      const pct = Math.min(100, Math.round(breakEvenMonths / 120 * 100));
+      document.getElementById('r-payback-pct').textContent   = pct + '% of 10-yr window';
+      setTimeout(() => { document.getElementById('r-payback-bar').style.width = pct + '%'; }, 100);
+    }
+
+    document.getElementById('r-10yr').textContent          = tenYearSavings > 0 ? fmt(tenYearSavings) : '₦0';
+    document.getElementById('r-roi').textContent           = roi + '%';
+    document.getElementById('r-monthly-saving').textContent = monthlySaving > 0 ? fmt(monthlySaving) : '₦0';
+
+    // ── Band B Migration Risk ────────────────────────────────────────────
+    const riskPanel = document.getElementById('risk-panel');
+    if (gridBand === 'B') {
+      riskPanel.classList.add('visible');
+
+      const bandAEquiv     = monthlyKwh * RATE_BAND_A;
+      const migrationDelta = bandAEquiv - monthlyNepa;
+
+      // Migration Gap: (Band A Rate − Band B Rate) × monthly kWh
+      const migrationGapMonthly = (RATE_BAND_A - RATE_BAND_B) * monthlyKwh;
+      const migrationGapAnnual  = migrationGapMonthly * 12;
+
+      const riskMonthlySaving = (monthlyFuel + bandAEquiv) - solarMonthlyCost;
+      const riskBreakEven     = riskMonthlySaving > 0 ? Math.ceil(solarCost / riskMonthlySaving) : 999;
+
+      document.getElementById('r-band-b-bill').textContent      = fmtFull(monthlyNepa);
+      document.getElementById('r-band-a-equiv').textContent     = fmtFull(bandAEquiv);
+      document.getElementById('r-migration-delta').textContent  = '+' + fmtFull(migrationDelta);
+      document.getElementById('r-risk-breakeven').textContent   = riskBreakEven < 999 ? riskBreakEven + ' months' : 'N/A';
+      document.getElementById('r-annual-risk-amount').textContent = fmtFull(migrationGapAnnual);
+      document.getElementById('r-annual-risk-text').innerHTML   =
+        `You are exposed to an extra <strong style="color:#FF7A8A">${fmtFull(migrationGapAnnual)}</strong> in annual costs if your area is upgraded to Band A.`;
+    } else {
+      riskPanel.classList.remove('visible');
+    }
+
+    // Comparison table + chart
+    buildTable(monthlyFuel, monthlyNepa, monthlyTotal, solarMonthlyCost, solarCost);
+    drawChart(yearlyTotal, yearlyTotal10, solarCost, SOLAR_MAINTENANCE, gridBand);
+
+    // Show results
+    const panel = document.getElementById('results-panel');
+    if (!panel.classList.contains('visible')) {
+      panel.classList.add('visible');
+      setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+    }
+  }
+
+  // ── Comparison Table ──────────────────────────────────────────────────────
+  function buildTable(fuel, nepa, total, solarMonthly, solarCost) {
+    const bl = gridBand === 'A' ? 'Band A (₦209.5/kWh)' : 'Band B (₦63.5/kWh)';
+    const rows = [
+      { l:'Monthly Fuel',     g: fmtFull(fuel),  s:'₦0 (sunshine is free)', w:'solar' },
+      { l:'Monthly Grid',     g: fmtFull(nepa)+`<br><span style="font-size:9px;opacity:0.6">${bl}</span>`, s:'~₦0 (mostly off-grid)', w:'solar' },
+      { l:'Monthly Total',    g: fmtFull(total),  s: fmtFull(solarMonthly),  w:'solar' },
+      { l:'Maintenance',      g:'₦15K–₦30K/mo',  s:'~₦4,200/mo',            w:'solar' },
+      { l:'Noise & Fumes',    g:'🔴 High',         s:'🟢 None',               w:'solar' },
+      { l:'Lifespan',         g:'3–7 years',       s:'25+ years (panels)',    w:'solar' },
+      { l:'Upfront Cost',     g:'₦300K–₦600K',    s: fmtFull(solarCost),     w:'gen'   },
+    ];
+    let h = `<div class="compare-row" style="padding-bottom:8px;border-bottom:1px solid var(--border)">
+      <div style="flex:1.5"></div>
+      <div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:var(--amber);letter-spacing:0.08em;text-transform:uppercase">Generator</div>
+      <div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:var(--green);letter-spacing:0.08em;text-transform:uppercase">Solar</div>
+    </div>`;
+    rows.forEach(r => {
+      h += `<div class="compare-row">
+        <div style="flex:1.5;font-size:11px;color:var(--muted)">${r.l}</div>
+        <div style="flex:1;font-size:11px;font-weight:500;text-align:center;color:${r.w==='gen'?'var(--amber)':'#FF7A8A'}">${r.g}</div>
+        <div style="flex:1;font-size:11px;font-weight:500;text-align:center;color:${r.w==='solar'?'var(--green)':'var(--muted)'}">${r.s}</div>
+      </div>`;
+    });
+    document.getElementById('comparison-table').innerHTML = h;
+  }
+
+  // ── Canvas Chart (responsive) ─────────────────────────────────────────────
+  function drawChart(ygCurrent, ygBench, solarUp, solarMaint, band) {
+    window._cp = { ygCurrent, ygBench, solarUp, solarMaint, band };
+    const canvas = document.getElementById('savings-chart');
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W   = Math.max(canvas.parentElement.clientWidth, 200);
+    const H   = 200;
+    canvas.width  = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+
+    const yrs = 10;
+    const genD = [], solD = [], bnD = [];
+    for (let y = 0; y <= yrs; y++) {
+      genD.push(ygCurrent * y);
+      bnD.push(ygBench * y);
+      solD.push(solarUp + solarMaint * y);
+    }
+    const maxV = Math.max(...genD, ...bnD, ...solD, 1);
+    const pad  = { t:20, r:14, b:28, l:52 };
+    const cW   = W - pad.l - pad.r;
+    const cH   = H - pad.t - pad.b;
+    const xP   = i => pad.l + (i/yrs)*cW;
+    const yP   = v => pad.t + cH - (v/maxV)*cH;
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.t + (cH/4)*i;
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+      const v = maxV*(1-i/4);
+      ctx.fillStyle='rgba(122,132,160,0.7)'; ctx.font='9px DM Sans'; ctx.textAlign='right';
+      ctx.fillText(v>=1e6?(v/1e6).toFixed(1)+'M':Math.round(v/1e3)+'K', pad.l-4, y+3);
+    }
+    ctx.fillStyle='rgba(122,132,160,0.7)'; ctx.font='9px DM Sans'; ctx.textAlign='center';
+    for (let i = 0; i <= yrs; i+=2) ctx.fillText('Yr'+i, xP(i), H-5);
+
+    const drawLine = (data, color, dashed, width) => {
+      if (dashed) ctx.setLineDash([5,4]); else ctx.setLineDash([]);
+      ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineJoin='round';
+      data.forEach((v,i) => i===0 ? ctx.moveTo(xP(i),yP(v)) : ctx.lineTo(xP(i),yP(v)));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+    const fillUnder = (data, color) => {
+      ctx.beginPath();
+      data.forEach((v,i) => i===0 ? ctx.moveTo(xP(i),yP(v)) : ctx.lineTo(xP(i),yP(v)));
+      ctx.lineTo(xP(yrs),yP(0)); ctx.lineTo(xP(0),yP(0)); ctx.closePath();
+      ctx.fillStyle=color; ctx.fill();
+    };
+    const dots = (data, color) => data.forEach((v,i) => {
+      ctx.beginPath(); ctx.arc(xP(i),yP(v),2.5,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+    });
+
+    if (band === 'B') drawLine(bnD, '#FF9F1C', true, 1.8);
+    drawLine(genD, '#FF7A8A', false, 2.5); fillUnder(genD, 'rgba(255,122,138,0.07)');
+    drawLine(solD, '#00E5A0', false, 2.5); fillUnder(solD, 'rgba(0,229,160,0.06)');
+    dots(genD, '#FF7A8A'); dots(solD, '#00E5A0');
+
+    const leg = document.getElementById('chart-legend');
+    if (leg) leg.innerHTML = `
+      <div class="flex items-center gap-2 text-xs" style="color:var(--muted)">
+        <span style="width:12px;height:3px;background:#FF7A8A;display:inline-block;border-radius:2px"></span>
+        Generator (${band==='B'?'Band B current':'Band A'})
+      </div>
+      ${band==='B'?`<div class="flex items-center gap-2 text-xs" style="color:var(--muted)">
+        <span style="width:16px;border-top:2px dashed #FF9F1C;display:inline-block"></span>If Migrated→Band A</div>`:''}
+      <div class="flex items-center gap-2 text-xs" style="color:var(--muted)">
+        <span style="width:12px;height:3px;background:var(--green);display:inline-block;border-radius:2px"></span>
+        Solar Total Cost
+      </div>`;
+  }
+
+  // ── Detail toggle ─────────────────────────────────────────────────────────
+  function toggleDetailedAnalysis() {
+    detailOpen = !detailOpen;
+    document.getElementById('detailed-analysis').classList.toggle('open', detailOpen);
+    document.getElementById('detail-toggle-btn').classList.toggle('open', detailOpen);
+    document.getElementById('detail-chevron').style.transform = detailOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+    document.getElementById('detail-btn-label').textContent = detailOpen
+      ? '📊 Hide Detailed Financial Analysis'
+      : '📊 Show Detailed Financial Analysis';
+    if (detailOpen) setTimeout(() => {
+      const p = window._cp;
+      if (p) drawChart(p.ygCurrent, p.ygBench, p.solarUp, p.solarMaint, p.band);
+    }, 90);
+  }
+
+  // ── Lead form ─────────────────────────────────────────────────────────────
+  function submitLead() {
+    const ids = ['lead-name','lead-phone','lead-location','lead-budget'];
+    let ok = true;
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) {
+        el.style.borderColor = '#FF4B6E';
+        el.style.boxShadow   = '0 0 0 3px rgba(255,75,110,0.15)';
+        setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 2500);
+        ok = false;
+      }
+    });
+    if (!ok) return;
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 4500);
+    ['lead-name','lead-phone','lead-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('lead-location').value = '';
+    document.getElementById('lead-budget').value   = '';
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  window.addEventListener('load', () => setTimeout(calculate, 350));
+  window.addEventListener('resize', () => {
+    if (detailOpen && window._cp) {
+      const p = window._cp;
+      drawChart(p.ygCurrent, p.ygBench, p.solarUp, p.solarMaint, p.band);
+    }
+  });
+  const _s = document.createElement('style');
+  _s.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+  document.head.appendChild(_s);
+</script>
+</body>
+</html>
